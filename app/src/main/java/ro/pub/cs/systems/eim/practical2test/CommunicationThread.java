@@ -45,29 +45,28 @@ public class CommunicationThread extends Thread {
             // Create BufferedReader and PrintWriter instances for reading from and writing to the socket
             BufferedReader bufferedReader = Utilities.getReader(socket);
             PrintWriter printWriter = Utilities.getWriter(socket);
-            Log.i(Constants.TAG, "[COMMUNICATION THREAD] Waiting for parameters from client (city / information type!");
+            Log.i(Constants.TAG, "[COMMUNICATION THREAD] Waiting for parameters from client (pokemon) type!");
 
             // Read the city and informationType values sent by the client
-            String city = bufferedReader.readLine();
-            String informationType = bufferedReader.readLine();
-            if (city == null || city.isEmpty() || informationType == null || informationType.isEmpty()) {
-                Log.e(Constants.TAG, "[COMMUNICATION THREAD] Error receiving parameters from client (city / information type!");
+            String pokemonName = bufferedReader.readLine();
+            if (pokemonName == null || pokemonName.isEmpty()) {
+                Log.e(Constants.TAG, "[COMMUNICATION THREAD] Error receiving parameters from client (pokemon) type!");
                 return;
             }
 
-            // It checks whether the serverThread has already received the weather forecast information for the given city.
-            HashMap<String, WeatherForecastInformation> data = serverThread.getData();
-            WeatherForecastInformation weatherForecastInformation;
-            if (data.containsKey(city)) {
+            // It checks whether the serverThread has already received the pokemon forecast information for the given city.
+            HashMap<String, PokemonInformation> data = serverThread.getData();
+            PokemonInformation pokemonInformation;
+            if (data.containsKey(pokemonName)) {
                 Log.i(Constants.TAG, "[COMMUNICATION THREAD] Getting the information from the cache...");
-                weatherForecastInformation = data.get(city);
+                pokemonInformation = data.get(pokemonName);
             } else {
                 Log.i(Constants.TAG, "[COMMUNICATION THREAD] Getting the information from the webservice...");
                 HttpClient httpClient = new DefaultHttpClient();
                 String pageSourceCode = "";
 
                 // make the HTTP request to the web service
-                HttpGet httpGet = new HttpGet(Constants.WEB_SERVICE_ADDRESS + "?q=" + city + "&APPID=" + Constants.WEB_SERVICE_API_KEY + "&units=" + Constants.UNITS);
+                HttpGet httpGet = new HttpGet("https://pokeapi.co/api/v2/pokemon/" + pokemonName);
                 HttpResponse httpGetResponse = httpClient.execute(httpGet);
                 HttpEntity httpGetEntity = httpGetResponse.getEntity();
                 if (httpGetEntity != null) {
@@ -80,61 +79,43 @@ public class CommunicationThread extends Thread {
 
                 // Parse the page source code into a JSONObject and extract the needed information
                 JSONObject content = new JSONObject(pageSourceCode);
-                JSONArray weatherArray = content.getJSONArray(Constants.WEATHER);
-                JSONObject weather;
-                StringBuilder condition = new StringBuilder();
-                System.out.println(weatherArray);
-                for (int i = 0; i < weatherArray.length(); i++) {
-                    weather = weatherArray.getJSONObject(i);
-                    condition.append(weather.getString(Constants.MAIN)).append(" : ").append(weather.getString(Constants.DESCRIPTION));
+                JSONArray pokemonAbilities = content.getJSONArray("abilities");
 
-                    if (i < weatherArray.length() - 1) {
-                        condition.append(";");
-                    }
+                JSONObject pokemonAbility;
+                String[] abilities = new String[pokemonAbilities.length()];
+                for (int i = 0; i < pokemonAbilities.length(); i++) {
+                    pokemonAbility = pokemonAbilities.getJSONObject(i);
+                    JSONObject abilityInfo = pokemonAbility.getJSONObject("ability");
+                    String abilityName = abilityInfo.getString("name");
+                    abilities[i] = abilityName;
                 }
-                JSONObject main = content.getJSONObject(Constants.MAIN);
-                String temperature = main.getString(Constants.TEMP);
-                String pressure = main.getString(Constants.PRESSURE);
-                String humidity = main.getString(Constants.HUMIDITY);
-                JSONObject wind = content.getJSONObject(Constants.WIND);
-                String windSpeed = wind.getString(Constants.SPEED);
 
-                // Create a WeatherForecastInformation object with the information extracted from the JSONObject
-                weatherForecastInformation = new WeatherForecastInformation(temperature, windSpeed, condition.toString(), pressure, humidity);
+                JSONArray pokemonType = content.getJSONArray("types");
+                JSONObject pokemonType1 = pokemonType.getJSONObject(0).getJSONObject("type");
+                String typeName = pokemonType1.getString("name");
+                System.out.println(typeName);
+
+//                JSONArray pokemonURL = content.getJSONArray("sprites");
+//                JSONObject pokemonURL1 = pokemonType.getJSONObject(0).getJSONObject("front_default");
+//                String url = pokemonType1.getString("name");
+//                System.out.println(url);
+
+                // Create a PokemonInformation object with the information extracted from the JSONObject
+                pokemonInformation = new PokemonInformation(abilities, typeName, null);
 
                 // Cache the information for the given city
-                serverThread.setData(city, weatherForecastInformation);
+                serverThread.setData(pokemonName, pokemonInformation);
             }
 
-            if (weatherForecastInformation == null) {
-                Log.e(Constants.TAG, "[COMMUNICATION THREAD] Weather Forecast Information is null!");
+            if (pokemonInformation == null) {
+                Log.e(Constants.TAG, "[COMMUNICATION THREAD] Pokemon Information is null!");
                 return;
             }
 
             // Send the information back to the client
-            String result;
-            switch (informationType) {
-                case Constants.ALL:
-                    result = weatherForecastInformation.toString();
-                    break;
-                case Constants.TEMPERATURE:
-                    result = weatherForecastInformation.getTemperature();
-                    break;
-                case Constants.WIND_SPEED:
-                    result = weatherForecastInformation.getWindSpeed();
-                    break;
-                case Constants.CONDITION:
-                    result = weatherForecastInformation.getCondition();
-                    break;
-                case Constants.HUMIDITY:
-                    result = weatherForecastInformation.getHumidity();
-                    break;
-                case Constants.PRESSURE:
-                    result = weatherForecastInformation.getPressure();
-                    break;
-                default:
-                    result = "[COMMUNICATION THREAD] Wrong information type (all / temperature / wind_speed / condition / humidity / pressure)!";
-            }
+            String result = "Abilities: \n" + pokemonInformation.getAbilities() + "\n" +
+                    "Type: \n" + pokemonInformation.getType() + "\n";
+            System.out.println(result);
 
             // Send the result back to the client
             printWriter.println(result);

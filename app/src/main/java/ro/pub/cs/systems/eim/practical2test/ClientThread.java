@@ -13,17 +13,15 @@ public class ClientThread extends Thread {
 
     private final String address;
     private final int port;
-    private final String city;
-    private final String informationType;
+    private final String pokemonName;
     private final TextView weatherForecastTextView;
 
     private Socket socket;
 
-    public ClientThread(String address, int port, String city, String informationType, TextView weatherForecastTextView) {
+    public ClientThread(String address, int port, String pokemonName, TextView weatherForecastTextView) {
         this.address = address;
         this.port = port;
-        this.city = city;
-        this.informationType = informationType;
+        this.pokemonName = pokemonName;
         this.weatherForecastTextView = weatherForecastTextView;
     }
 
@@ -38,9 +36,7 @@ public class ClientThread extends Thread {
             PrintWriter printWriter = Utilities.getWriter(socket);
 
             // sends the city and information type to the server
-            printWriter.println(city);
-            printWriter.flush();
-            printWriter.println(informationType);
+            printWriter.println(pokemonName);
             printWriter.flush();
             String weatherInformation;
 

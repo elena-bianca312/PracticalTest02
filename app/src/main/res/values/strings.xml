@@ -6,9 +6,9 @@
     <string name="client">CLIENT</string>
     <string name="client_address">Address</string>
     <string name="client_port">Port</string>
-    <string name="city">City</string>
+    <string name="pokemon">Pokemon</string>
     <string name="information_type">Information Type</string>
-    <string name="get_weather_forecast">Get Weather Forecast</string>
+    <string name="get_pokemon_info">Get Pokemon Info</string>
     <string-array name="information_types">
         <item>temperature</item>
         <item>wind_speed</item>
